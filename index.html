@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Archive Node</title>
+
+<style>
+body {
+  background: black;
+  color: #00ff9f;
+  font-family: monospace;
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  max-width: 720px;
+  margin: auto;
+  text-align: center;
+}
+
+.logo {
+  width: 80px;
+  opacity: 0.85;
+  margin-bottom: 10px;
+}
+
+.title {
+  letter-spacing: 2px;
+}
+
+.subtitle {
+  font-size: 12px;
+  opacity: 0.5;
+  margin-bottom: 20px;
+}
+
+.drop-zone {
+  border: 1px dashed #00ff9f;
+  padding: 30px;
+  cursor: pointer;
+}
+
+.drop-zone:hover {
+  background: rgba(0,255,159,0.06);
+}
+
+#output {
+  text-align: left;
+  margin-top: 20px;
+  min-height: 220px;
+  white-space: pre-wrap;
+}
+
+.loading {
+  color: #00aa66;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.result {
+  color: #00ffcc;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.divider {
+  opacity: 0.3;
+  margin: 10px 0;
+}
+
+.glitch {
+  animation: glitch 0.2s infinite;
+}
+
+@keyframes glitch {
+  0% { text-shadow: 1px 0 red; }
+  50% { text-shadow: -1px 0 blue; }
+  100% { text-shadow: 1px 0 red; }
+}
+
+input { display: none; }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<img src="./Logo fixed.png" class="logo"/>
+
+<h2 class="title">ARCHIVE NODE</h2>
+<div class="subtitle">Recovered fragments may be incomplete</div>
+
+<div class="drop-zone" onclick="fileInput.click()">
+  Drop file or click to load
+</div>
+
+<input type="file" id="fileInput" accept="image/*">
+<pre id="output"></pre>
+
+</div>
+
+<script>
+const SECRET_KEY = "node-47";
+
+const fileInput = document.getElementById("fileInput");
+fileInput.addEventListener("change", handleFile);
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function () {
+    const img = new Image();
+    img.onload = () => runDecode(img);
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function runDecode(img) {
+  const output = document.getElementById("output");
+  output.innerHTML = "";
+
+  const steps = [
+    "Reading input...",
+    "Analyzing structure...",
+    "Scanning for anomalies...",
+    "Signal irregularity detected...",
+    "Extracting hidden layer..."
+  ];
+
+  typeLines(steps, () => {
+    setTimeout(() => {
+      const msg = extractMessage(img);
+
+      if (!msg) glitchText("No valid data recovered.");
+      else showResult(msg);
+
+    }, 600);
+  });
+}
+
+function extractMessage(img) {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = img.width;
+  canvas.height = img.height;
+  ctx.drawImage(img, 0, 0);
+
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  let binary = "";
+  let text = "";
+
+  let maxBits = Math.min(2500, data.data.length / 4);
+
+  for (let i = 0; i < maxBits; i++) {
+    let pixelIndex = i * 4;
+    binary += (data.data[pixelIndex] & 1);
+
+    if (binary.length % 8 === 0) {
+      let byte = binary.slice(-8);
+      text += String.fromCharCode(parseInt(byte, 2));
+
+      if (text.length >= 20 && !text.includes("ARG_START::")) {
+        return null;
+      }
+
+      if (text.includes("::END")) {
+        let raw = text.split("ARG_START::")[1].split("::END")[0];
+        let [key, msg] = raw.split("::");
+
+        if (key !== SECRET_KEY) return null;
+
+        return msg;
+      }
+    }
+  }
+
+  return null;
+}
+
+/* UI EFFECT */
+function typeLines(lines, callback) {
+  let i = 0;
+  const output = document.getElementById("output");
+
+  function next() {
+    if (i < lines.length) {
+      const line = document.createElement("div");
+      line.className = "loading";
+      line.innerText = "> " + lines[i];
+      output.appendChild(line);
+      i++;
+      setTimeout(next, 350);
+    } else callback();
+  }
+
+  next();
+}
+
+function showResult(text) {
+  const output = document.getElementById("output");
+
+  const divider = document.createElement("div");
+  divider.className = "divider";
+  divider.innerText = "--------------------------";
+  output.appendChild(divider);
+
+  const header = document.createElement("div");
+  header.className = "result";
+  header.innerText = "[DATA RECOVERED]\n";
+  output.appendChild(header);
+
+  typeText(text);
+}
+
+function typeText(text) {
+  let i = 0;
+  const output = document.getElementById("output");
+
+  const result = document.createElement("div");
+  result.className = "result";
+  output.appendChild(result);
+
+  function typing() {
+    if (i < text.length) {
+      result.innerText += text.charAt(i);
+      i++;
+      setTimeout(typing, 15);
+    }
+  }
+
+  typing();
+}
+
+function glitchText(text) {
+  const output = document.getElementById("output");
+  output.classList.add("glitch");
+  output.innerText = text;
+
+  setTimeout(() => {
+    output.classList.remove("glitch");
+  }, 1000);
+}
+</script>
+
+</body>
+</html>
