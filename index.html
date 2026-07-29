@@ -157,9 +157,10 @@ function extractMessage(img) {
   let binary = "";
   let text = "";
 
-  let maxBits = Math.min(2500, data.data.length / 4);
+  // Baca hingga seluruh pixel gambar selesai
+  let totalPixels = data.data.length / 4;
 
-  for (let i = 0; i < maxBits; i++) {
+  for (let i = 0; i < totalPixels; i++) {
     let pixelIndex = i * 4;
     binary += (data.data[pixelIndex] & 1);
 
@@ -167,13 +168,27 @@ function extractMessage(img) {
       let byte = binary.slice(-8);
       text += String.fromCharCode(parseInt(byte, 2));
 
-      if (text.length >= 20 && !text.includes("ARG_START::")) {
+      // Pengecekan Header: Jika sudah 11 karakter tapi BUKAN "ARG_START::", langsung stop
+      if (text.length === 11 && text !== "ARG_START::") {
         return null;
       }
 
+      // Pengecekan Footer
       if (text.includes("::END")) {
-        let raw = text.split("ARG_START::")[1].split("::END")[0];
-        let [key, msg] = raw.split("::");
+        const startMarker = "ARG_START::";
+        const endMarker = "::END";
+        
+        let startIndex = text.indexOf(startMarker) + startMarker.length;
+        let endIndex = text.indexOf(endMarker);
+        
+        let rawContent = text.substring(startIndex, endIndex); // Isinya: "SECRET_KEY::MESSAGE"
+        
+        // Pisahkan HANYA pada delimiter "::" pertama untuk memisahkan Key dan Message
+        let firstSeparatorIndex = rawContent.indexOf("::");
+        if (firstSeparatorIndex === -1) return null;
+
+        let key = rawContent.substring(0, firstSeparatorIndex);
+        let msg = rawContent.substring(firstSeparatorIndex + 2);
 
         if (key !== SECRET_KEY) return null;
 
@@ -184,7 +199,7 @@ function extractMessage(img) {
 
   return null;
 }
-
+  
 /* UI EFFECT */
 function typeLines(lines, callback) {
   let i = 0;
